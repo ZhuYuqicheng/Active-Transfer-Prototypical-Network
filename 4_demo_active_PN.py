@@ -96,6 +96,9 @@ def load_dataset():
 	trainX, trainy = load_dataset_group('train')
 	# load all test
 	testX, testy = load_dataset_group('test')
+	# save the original label
+	ori_trainy = copy.deepcopy(trainy)
+	ori_testy = copy.deepcopy(testy)
 	# zero-offset class values
 	trainy = trainy - 1
 	testy = testy - 1
@@ -104,8 +107,32 @@ def load_dataset():
 	testy = tf.keras.utils.to_categorical(testy)
 	# standardization
 	flatTrainX, flatTestX = scale_data(trainX, testX)
-	result = {"trainX": flatTrainX, "trainy": trainy, "testX": flatTestX, "testy": testy}
+	result = {"trainX": flatTrainX, "trainy": trainy, \
+		"testX": flatTestX, "testy": testy, \
+		"ori_trainy": ori_trainy, "ori_testy": ori_testy}
 	return result
+
+def input_preprocessing():
+	# load the HAR data
+	HAR_data = load_dataset()
+	# retrieve data
+	trainX, trainy = HAR_data["trainX"], HAR_data["trainy"]
+	testX, testy = HAR_data["testX"], HAR_data["testy"]
+	ori_trainy, ori_testy = HAR_data["ori_trainy"], HAR_data["ori_testy"]
+	# for pre-training
+	# 1 WALKING 2 WALKING_UPSTAIRS 3 WALKING_DOWNSTAIRS
+	train_mask = np.where(trainy==1)
+	test_mask = np.where(testy==1)
+	pre_train_data = {}
+	pre_train_data.update([("trainX", trainX[train_mask[0]]), ("trainy", trainy[train_mask[0]])])
+	pre_train_data.update([("testX", testX[test_mask[0]]), ("testy", testy[test_mask[0]])])
+	# for active learning
+	X = np.concatenate((trainX, testX), axis=0)
+	y = np.concatenate((ori_trainy, ori_testy), axis=0)
+	# 4 SITTING 5 STANDING 6 LAYING
+	active_mask = np.where((y==2) | (y==3) | (y==4) | (y==5) | (y==6))
+	active_data = {"X": X[active_mask[0]], "y": y[active_mask[0]]}
+	return pre_train_data, active_data
 
 # %% Pre-trained Encoder class
 class Encoder:
@@ -139,7 +166,8 @@ class Encoder:
 		_, accuracy = model.evaluate(self.testX, self.testy, batch_size=batch_size, verbose=0)
 		# save model
 		current_time = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
-		model.save(os.path.join("Encoder_models", current_time))
+		self.model_path = os.path.join("Encoder_models", current_time)
+		model.save(self.model_path)
 
 		# plot learning curve
 		if plot_acc:
@@ -210,24 +238,23 @@ class ActiveLearning:
 
 # %% main
 if __name__ == "__main__":
-	# # pre-training process
-	# HAR_data = load_dataset()
-	# encoder = Encoder(HAR_data)
-	# accuracy = encoder.train_model(epochs=3, verbose=0, plot_acc=True)
-	# print(accuracy)
+	pre_train_data, active_data = input_preprocessing()
+	# pre-trained model
+	encoder = Encoder(pre_train_data)
+	accuracy = encoder.train_model(epochs=5, verbose=0, plot_acc=False)
+	print(accuracy)
 
 	# Prototypical Network
-	# input with the same pre-processing (standardization)
-	HAR_data = load_dataset()
-	val_X = np.concatenate((HAR_data["trainX"], HAR_data["testX"]), axis=0)
-	# original label
-	label1 = load_file('./UCI HAR Dataset/train/y_train.txt')
-	label2 = load_file('./UCI HAR Dataset/test/y_test.txt')
-	val_label = np.concatenate((label1, label2), axis=0)
-	val_data = {"X": val_X, "y":val_label}
-	model_path = "Encoder_models/16_02_2022__00_42_06"
-	model = ActiveLearning(model_path, val_data)
-	model.run_active_learning()
+	# # input with the same pre-processing (standardization)
+	# HAR_data = load_dataset()
+	# val_X = np.concatenate((HAR_data["trainX"], HAR_data["testX"]), axis=0)
+	# # original label
+	# val_label = np.concatenate((HAR_data["ori_trainy"], HAR_data["ori_testy"]), axis=0)
+	# val_data = {"X": val_X, "y":val_label}
+	# model_path = "Encoder_models/16_02_2022__00_42_06"
+	model = ActiveLearning(encoder.model_path, active_data)
+	model.run_active_learning(n_queries=10)
+	plt.plot(model.scores)
 
 
 # %%
