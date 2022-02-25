@@ -278,5 +278,4 @@ if __name__ == "__main__":
 	model = ActiveLearning(encoder.model_path, active_data)
 	model.run_multiple_AL(iteration=2, n_queries=20, batch_mode=True)
 
-
 # %%
