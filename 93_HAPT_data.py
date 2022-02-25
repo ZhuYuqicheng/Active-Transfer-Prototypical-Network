@@ -15,7 +15,55 @@ from tensorflow.python.keras.layers import MaxPooling1D
 from tensorflow.python.keras.models import Model
 
 from sklearn.preprocessing import StandardScaler
+class GenerateHARData():
+	def __init__(self) -> None:
+		pass
 
+	def get_group_data(self, group):
+		# get data
+		data_dir = "UCI HAR Dataset/"+group+"/Inertial Signals"
+		filenames = list()
+		filenames += ['total_acc_x_'+group+'.txt', 'total_acc_y_'+group+'.txt', 'total_acc_z_'+group+'.txt']
+		filenames += ['body_gyro_x_'+group+'.txt', 'body_gyro_y_'+group+'.txt', 'body_gyro_z_'+group+'.txt']
+		X = []
+		for filename in filenames:
+			# load data
+			data_path = os.path.join(data_dir, filename)
+			data = pd.read_csv(data_path, header=None, delim_whitespace=True)
+			X.append(data)
+		X = np.stack(X, axis=2)
+		# get labels
+		label_path = "UCI HAR Dataset/"+group+"/y_"+group+".txt"
+		label = pd.read_csv(label_path, header=None, delim_whitespace=True)
+		label = label.values - 1
+		y = tf.keras.utils.to_categorical(label)
+		return X, y
+
+	def scale_data(self, X):
+		# remove overlap
+		cut = int(X.shape[1] / 2)
+		longX = X[:, -cut:, :]
+		# flatten windows
+		longX = longX.reshape((longX.shape[0] * longX.shape[1], longX.shape[2]))
+		# flatten train and test
+		flatX = X.reshape((X.shape[0] * X.shape[1], X.shape[2]))
+		# flatTestX = testX.reshape((testX.shape[0] * testX.shape[1], testX.shape[2]))
+		# standardize
+		s = StandardScaler()
+		s.fit(longX)
+		flatX = s.transform(flatX)
+		# reshape
+		flatX = flatX.reshape((X.shape))
+		return flatX
+
+	def run(self):
+		trainX, trainy = self.get_group_data("train")
+		testX, testy = self.get_group_data("test")
+		X = np.concatenate([trainX, testX], axis=0)
+		# standardization
+		X = self.scale_data(X)
+		y = np.concatenate([trainy, testy], axis=0)
+		return X, y
 class GenerateHAPTData():
 	def __init__(self) -> None:
 		pass
@@ -105,60 +153,12 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 	# result
 	plot_Learning_curve(train_history)
 	print(accuracy)
-class GenerateHARData():
-	def __init__(self) -> None:
-		pass
 
-def get_group_data(group):
-	# get data
-	data_dir = "UCI HAR Dataset/"+group+"/Inertial Signals"
-	filenames = list()
-	filenames += ['total_acc_x_'+group+'.txt', 'total_acc_y_'+group+'.txt', 'total_acc_z_'+group+'.txt']
-	filenames += ['body_gyro_x_'+group+'.txt', 'body_gyro_y_'+group+'.txt', 'body_gyro_z_'+group+'.txt']
-	X = []
-	for filename in filenames:
-		# load data
-		data_path = os.path.join(data_dir, filename)
-		data = pd.read_csv(data_path, header=None, delim_whitespace=True)
-		X.append(data)
-	X = np.stack(X, axis=2)
-	# get labels
-	label_path = "UCI HAR Dataset/"+group+"/y_"+group+".txt"
-	label = pd.read_csv(label_path, header=None, delim_whitespace=True)
-	label = label.values - 1
-	y = tf.keras.utils.to_categorical(label)
-	return X, y
-
-def scale_data(X):
-	# remove overlap
-	cut = int(X.shape[1] / 2)
-	longX = X[:, -cut:, :]
-	# flatten windows
-	longX = longX.reshape((longX.shape[0] * longX.shape[1], longX.shape[2]))
-	# flatten train and test
-	flatX = X.reshape((X.shape[0] * X.shape[1], X.shape[2]))
-	# flatTestX = testX.reshape((testX.shape[0] * testX.shape[1], testX.shape[2]))
-	# standardize
-	s = StandardScaler()
-	s.fit(longX)
-	flatX = s.transform(flatX)
-	# reshape
-	flatX = flatX.reshape((X.shape))
-	return flatX
-
-def run():
-	trainX, trainy = get_group_data("train")
-	testX, testy = get_group_data("test")
-	X = np.concatenate([trainX, testX], axis=0)
-	# standardization
-	X = scale_data(X)
-	y = np.concatenate([trainy, testy], axis=0)
-	return X, y
 
 # %%
 if __name__ == "__main__":
 	# X, y = GenerateHAPTData().run()
-	X, y = run()
+	X, y = GenerateHARData().run()
 	train_model(X, y)
 
 # %%
