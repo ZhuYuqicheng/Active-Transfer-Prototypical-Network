@@ -15,6 +15,7 @@ from tensorflow.python.keras.layers import MaxPooling1D
 from tensorflow.python.keras.models import Model
 
 from sklearn.preprocessing import StandardScaler
+
 class GenerateHARData():
 	def __init__(self) -> None:
 		pass
@@ -64,6 +65,7 @@ class GenerateHARData():
 		X = self.scale_data(X)
 		y = np.concatenate([trainy, testy], axis=0)
 		return X, y
+		
 class GenerateHAPTData():
 	def __init__(self) -> None:
 		pass
@@ -153,7 +155,6 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 	# result
 	plot_Learning_curve(train_history)
 	print(accuracy)
-
 
 # %%
 if __name__ == "__main__":

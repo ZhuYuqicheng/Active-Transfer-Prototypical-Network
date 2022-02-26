@@ -18,6 +18,7 @@ from tensorflow.python.keras.models import Model
 import matplotlib.pyplot as plt
 
 from train_class import load_dataset
+from DataGeneration import GenerateHAPTData, GenerateHARData
 
 def random_sampling(classifier, X_pool):
 	n_samples = len(X_pool)
@@ -28,7 +29,6 @@ def random_batch_sampling(classifier, X_pool):
 	n_samples = len(X_pool)
 	query_idx = np.random.choice(range(n_samples), size=6, replace=False)
 	return query_idx, X_pool[query_idx]
-
 class OneDCNN():
 	def __init__(self) -> None:
 		pass
@@ -64,40 +64,68 @@ class OneDCNN():
 		predictor = Model(inputs=self.model.input, outputs=self.model.get_layer("prob").output)
 		return predictor.predict(X)
 
+class Evaluator():
+	def __init__(self, data_generator, estimator, query_strategy) -> None:
+		self.X, self.y = data_generator.run()
+		self.estimator = estimator
+		self.query_strategy = query_strategy
+		if (query_strategy == uncertainty_batch_sampling) or (query_strategy == random_batch_sampling):
+			self.batch_mode = True
+		else:
+			self.batch_mode = False
+
+	def single_evaluation(self, n_queries, index):
+		np.random.seed(0)
+		# initialization
+		initial_idx = np.random.choice(range(len(self.X)), size=100, replace=False)
+		X_initial, y_initial = self.X[initial_idx], self.y[initial_idx]
+		X_pool, y_pool = np.delete(self.X, initial_idx, axis=0), np.delete(self.y, initial_idx, axis=0)
+		# active learning
+		learner = ActiveLearner(
+			estimator=self.estimator,
+			query_strategy=self.query_strategy,
+			X_training=X_initial, y_training=y_initial
+		)
+		accuracy = [learner.score(self.X, self.y)]
+		for i in range(n_queries):
+			query_idx, _ = learner.query(X_pool)
+			learner.teach(X_pool[query_idx], y_pool[query_idx])
+			X_pool, y_pool = np.delete(X_pool, query_idx, axis=0), np.delete(y_pool, query_idx, axis=0)
+			accuracy.append(learner.score(self.X, self.y))
+			print(f"{index+1}. iteration: {i+1}/{n_queries} queries")
+		# get x for visualization
+		if self.batch_mode:
+			self.plot_indeces = \
+				np.linspace(1, (n_queries+1)*len(np.unique(self.y)), (n_queries+1), dtype=np.int16)
+		else:
+			self.plot_indeces = np.linspace(1, (n_queries+1), (n_queries+1), dtype=np.int16)
+		return accuracy
+
+	def run(self, n_queries, iteration, visual=False):
+		self.accuracies = [self.single_evaluation(n_queries, index) \
+			for index in range(iteration)]
+		if visual:
+			self.visualization()
+
+	def bootstrap(self, values, confidence=0.95):
+		return np.percentile(values,[100*(1-confidence)/2, 100*(1-(1-confidence)/2)])
+
+	def visualization(self):
+		# plot the result
+		fig, ax = plt.subplots()
+		y = np.apply_along_axis(np.mean, 0, np.array(self.accuracies))
+		conf_int = np.apply_along_axis(self.bootstrap, 0, np.array(self.accuracies))
+		ax.plot(self.plot_indeces, y)
+		ax.fill_between(self.plot_indeces, conf_int[0], conf_int[1], alpha=0.1)
+
 #%%
 if __name__ == "__main__":
-	# load HAR data
-	HAR_data = load_dataset()
-	X_train = HAR_data["trainX"]
-	y_train = HAR_data["trainy"]
-	X_test = HAR_data["testX"]
-	y_test = HAR_data["testy"]
-	# Parameter Initialization
-	n_queries = 20
-	estimator = OneDCNN()
-	# query_strategy = random_sampling
-	# query_strategy = uncertainty_sampling
-	query_strategy = random_batch_sampling
-	# query_strategy = uncertainty_batch_sampling
-	# initialization
-	np.random.seed(0)
-	initial_idx = np.random.choice(range(len(X_train)), size=1, replace=False)
-	X_initial, y_initial = X_train[initial_idx], y_train[initial_idx]
-	X_pool, y_pool = np.delete(X_train, initial_idx, axis=0), np.delete(y_train, initial_idx, axis=0)
-	learner = ActiveLearner(
-		estimator=estimator,
-		query_strategy=query_strategy,
-		X_training=X_initial, y_training=y_initial
+	evaluator = Evaluator(
+		data_generator = GenerateHARData(), 
+		estimator = OneDCNN(), 
+		query_strategy = uncertainty_batch_sampling
 	)
-	# training
-	train_accuracy = [learner.score(X_train, y_train)]
-	test_accuracy = [learner.score(X_test, y_test)]
-	for i in range(n_queries):
-		# Active Learning
-		query_idx, _ = learner.query(X_pool)
-		learner.teach(X_pool[query_idx], y_pool[query_idx])
-		X_pool, y_pool = np.delete(X_pool, query_idx, axis=0), np.delete(y_pool, query_idx, axis=0)
-		train_accuracy.append(learner.score(X_train, y_train))
-		test_accuracy.append(learner.score(X_test, y_test))
-		print(f"run: {i+1}/{n_queries}")
+
+	evaluator.run(n_queries=10, iteration=3, visual=True)
+
 # %%
