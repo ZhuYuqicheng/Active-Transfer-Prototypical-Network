@@ -118,6 +118,12 @@ class GenerateHAPTData():
 			label_list.append(label)
 		X = np.concatenate(data_list, axis=0)
 		y = np.concatenate(label_list, axis=0)
+		# select label (7,8,9,10,11,12)
+		# mask = np.where((y>=7) & (y<=12))
+		# X = X[mask]
+		# y = y[mask]
+		# onehot encoding of label
+		# y = y - 7
 		y = y - 1
 		y = tf.keras.utils.to_categorical(y)
 		return X, y
@@ -158,8 +164,8 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 
 # %%
 if __name__ == "__main__":
-	# X, y = GenerateHAPTData().run()
-	X, y = GenerateHARData().run()
-	train_model(X, y)
+	X, y = GenerateHAPTData().run()
+	# X, y = GenerateHARData().run()
+	#train_model(X, y)
 
 # %%
