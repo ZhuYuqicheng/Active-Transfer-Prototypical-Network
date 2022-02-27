@@ -1,10 +1,13 @@
 #%%
+# general packages
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+# active learning packages
 from modAL.models import ActiveLearner
 from modAL.uncertainty import uncertainty_sampling
 from modAL.batch import uncertainty_batch_sampling
-
+# deep learning packages
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.keras.models import Sequential
@@ -14,12 +17,9 @@ from tensorflow.python.keras.layers import Dropout
 from tensorflow.python.keras.layers import Conv1D
 from tensorflow.python.keras.layers import MaxPooling1D
 from tensorflow.python.keras.models import Model
-
+# machine learning packages
 from sklearn.metrics import accuracy_score
-
-import matplotlib.pyplot as plt
-
-from train_class import load_dataset
+# own packages
 from DataGeneration import GenerateHAPTData, GenerateHARData
 
 def random_sampling(classifier, X_pool):
@@ -116,6 +116,48 @@ class OnlinePrototypicalNetwork():
 		prob = []
 		for feature in features:
 			dist = np.sum((np.array(self.prototyps)-feature)**2, axis=1)
+			dist = dist/max(dist) # avoid overflow of exp
+			prob.append(1 - np.exp(dist)/sum(np.exp(dist)))
+		return np.array(prob)
+
+	def score(self, X, y):
+		y_pred = self.predict(X)
+		y = np.argmax(y, axis=1).reshape(-1,1)
+		return accuracy_score(y, y_pred)
+
+class OfflinePrototypicalNetwork():
+	def __init__(self) -> None:
+		pass
+	
+	def fit(self, X, y):
+		# load the pre-trained encoder
+		model_path = "./Encoder_models/27_02_2022__23_06_08"
+		base_model = keras.models.load_model(model_path)
+		# feature extraction
+		self.extractor = Model(inputs=base_model.input, outputs=base_model.get_layer("feature").output)
+		features = self.extractor.predict(X)
+		# calculate the prototyps
+		support_set = pd.DataFrame(features)
+		support_set["y"] = np.argmax(y, axis=1).reshape(-1,1)
+		prototyps = support_set.groupby("y").mean()
+		self.prototyps = prototyps
+
+	def single_predict(self, feature):
+		dist = np.sum((np.array(self.prototyps)-feature)**2, axis=1)
+		idx = np.argmin(dist)
+		return self.prototyps.index[idx]
+
+	def predict(self, X):
+		features = self.extractor.predict(X)
+		y_pred = [self.single_predict(feature) for feature in features]
+		return y_pred
+
+	def predict_proba(self, X):
+		features = self.extractor.predict(X)
+		prob = []
+		for feature in features:
+			dist = np.sum((np.array(self.prototyps)-feature)**2, axis=1)
+			dist = dist/max(dist) # avoid overflow of exp
 			prob.append(1 - np.exp(dist)/sum(np.exp(dist)))
 		return np.array(prob)
 
@@ -181,11 +223,14 @@ class Evaluator():
 		ax.fill_between(self.plot_indeces, conf_int[0], conf_int[1], alpha=0.1)
 
 #%%
+# uncertainty_sampling, uncertainty_batch_sampling, random_sampling, random_batch_sampling
+# OneDCNN, OnlinePrototypicalNetwork, OfflinePrototypicalNetwork
 if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
-		estimator = OneDCNN(), 
-		query_strategy = uncertainty_sampling
+		estimator = OnlinePrototypicalNetwork(), 
+		query_strategy = uncertainty_batch_sampling,
+		init_size=50
 	)
 
 	evaluator.run(n_queries=10, iteration=1, visual=True)
