@@ -15,6 +15,8 @@ from tensorflow.python.keras.layers import Conv1D
 from tensorflow.python.keras.layers import MaxPooling1D
 from tensorflow.python.keras.models import Model
 
+from sklearn.metrics import accuracy_score
+
 import matplotlib.pyplot as plt
 
 from train_class import load_dataset
@@ -63,6 +65,64 @@ class OneDCNN():
 	def predict_proba(self, X):
 		predictor = Model(inputs=self.model.input, outputs=self.model.get_layer("prob").output)
 		return predictor.predict(X)
+
+class OnlinePrototypicalNetwork():
+	def __init__(self) -> None:
+		pass
+
+	def fit(self, X, y, verbose=0, epochs=1, batch_size=32, \
+		filters=32, kernel=7, feature_num=100):
+		# get dimension
+		n_timesteps =  X.shape[1]
+		n_features = X.shape[2]
+		n_outputs = y.shape[1]
+		# define model structure
+		model = Sequential()
+		model.add(Conv1D(filters=filters, kernel_size=kernel, activation='relu', \
+			input_shape=(n_timesteps,n_features)))
+		model.add(Conv1D(filters=filters, kernel_size=kernel, activation='relu'))
+		model.add(Dropout(0.5))
+		model.add(MaxPooling1D(pool_size=2))
+		model.add(Flatten())
+		model.add(Dense(feature_num, activation='relu', name="feature"))
+		model.add(Dense(n_outputs, activation='softmax'))
+		model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+		# fit network
+		train_history = \
+			model.fit(X, y, epochs=epochs, \
+				batch_size=batch_size, verbose=verbose)
+
+		# get the feature extractor
+		self.extractor = Model(inputs=model.input, outputs=model.get_layer("feature").output)
+		features = self.extractor.predict(X)
+		# calculate the prototyps
+		support_set = pd.DataFrame(features)
+		support_set["y"] = np.argmax(y, axis=1).reshape(-1,1)
+		prototyps = support_set.groupby("y").mean()
+		self.prototyps = prototyps
+
+	def single_predict(self, feature):
+		dist = np.sum((np.array(self.prototyps)-feature)**2, axis=1)
+		idx = np.argmin(dist)
+		return self.prototyps.index[idx]
+
+	def predict(self, X):
+		features = self.extractor.predict(X)
+		y_pred = [self.single_predict(feature) for feature in features]
+		return y_pred
+
+	def predict_proba(self, X):
+		features = self.extractor.predict(X)
+		prob = []
+		for feature in features:
+			dist = np.sum((np.array(self.prototyps)-feature)**2, axis=1)
+			prob.append(1 - np.exp(dist)/sum(np.exp(dist)))
+		return np.array(prob)
+
+	def score(self, X, y):
+		y_pred = self.predict(X)
+		y = np.argmax(y, axis=1).reshape(-1,1)
+		return accuracy_score(y, y_pred)
 
 class Evaluator():
 	def __init__(self, data_generator, estimator, query_strategy, init_size=100) -> None:

@@ -35,7 +35,7 @@ def random_batch_sampling(classifier, X_pool):
 	query_idx = np.random.choice(range(n_samples), size=6, replace=False)
 	return query_idx, X_pool[query_idx]
 
-class PrototypicalNetwork():
+class OnlinePrototypicalNetwork():
 	def __init__(self) -> None:
 		pass
 
