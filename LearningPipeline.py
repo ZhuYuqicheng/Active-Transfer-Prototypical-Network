@@ -2,6 +2,8 @@
 # general packages
 import numpy as np
 import pandas as pd
+import os
+import pickle
 import matplotlib.pyplot as plt
 # active learning packages
 from modAL.models import ActiveLearner
@@ -308,11 +310,31 @@ class Evaluator():
 			self.plot_indeces = np.linspace(self.init_size, n_queries+self.init_size, n_queries+1, dtype=np.int16)
 		return accuracy
 
-	def run(self, n_queries, iteration, visual=False):
+	def run(self, n_queries, iteration, visual=False, save=False):
 		self.accuracies = [self.single_evaluation(n_queries, index) \
 			for index in range(iteration)]
+		if save:
+			self.save(n_queries, iteration)
 		if visual:
 			self.visualization()
+
+	def save(self, n_queries, iteration):
+		result = dict()
+		result["accuracy"] = self.accuracies
+		result["plot_indeces"] = self.plot_indeces
+		result["estimator"] = f"{self.estimator}".split(" ")[0].split(".")[1]
+		result["query_strategy"] = f"{self.query_strategy}".split(" ")[1]
+		result["init_size"] = self.init_size
+		result["n_queries"] = n_queries
+		result["iteration"] = iteration
+		# save the dict
+		save_dir = "exp_results"
+		save_name = result["estimator"]+"__"+result["query_strategy"]+"__"+str(result["init_size"])+".pkl"
+		with open(os.path.join(save_dir, save_name), 'wb+') as f:
+			pickle.dump(result, f)
+		# with open('saved_dictionary.pkl', 'rb') as f:
+    	# 	loaded_dict = pickle.load(f)
+
 
 	def bootstrap(self, values, confidence=0.95):
 		return np.percentile(values,[100*(1-confidence)/2, 100*(1-(1-confidence)/2)])
@@ -333,10 +355,10 @@ if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
 		estimator = TransferPrototypicalNetwork(), 
-		query_strategy = random_batch_sampling,
+		query_strategy = uncertainty_sampling,
 		init_size=1
 	)
 
-	evaluator.run(n_queries=10, iteration=1, visual=True)
+	evaluator.run(n_queries=300, iteration=1, visual=True, save=True)
 
 # %%
