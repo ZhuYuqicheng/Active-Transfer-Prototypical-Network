@@ -1,9 +1,10 @@
 # %%
+# general packages
 import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-
+# deep learning packages
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.keras.models import Sequential
@@ -13,7 +14,7 @@ from tensorflow.python.keras.layers import Dropout
 from tensorflow.python.keras.layers import Conv1D
 from tensorflow.python.keras.layers import MaxPooling1D
 from tensorflow.python.keras.models import Model
-
+# machine learning packages
 from sklearn.preprocessing import StandardScaler
 
 class GenerateHARData():

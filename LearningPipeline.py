@@ -32,6 +32,9 @@ def random_batch_sampling(classifier, X_pool):
 	query_idx = np.random.choice(range(n_samples), size=6, replace=False)
 	return query_idx, X_pool[query_idx]
 class OneDCNN():
+	"""
+	The class of trivial 1D CNN
+	"""
 	def __init__(self) -> None:
 		pass
 
@@ -67,6 +70,10 @@ class OneDCNN():
 		return predictor.predict(X)
 
 class OnlinePrototypicalNetwork():
+	"""
+	The class of active prototypical network
+	Online: the encoder will be updated in real-time
+	"""
 	def __init__(self) -> None:
 		pass
 
@@ -126,6 +133,12 @@ class OnlinePrototypicalNetwork():
 		return accuracy_score(y, y_pred)
 
 class OfflinePrototypicalNetwork():
+	"""
+	The class of active prototypical network
+	Offline: the encoder is pre-trained on HAPT dataset
+	The encoder can be trained on 6_train_encoder.py
+	"model_path" need to be changed after retrained the encoder
+	"""
 	def __init__(self) -> None:
 		pass
 	
@@ -228,9 +241,9 @@ class Evaluator():
 if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
-		estimator = OnlinePrototypicalNetwork(), 
+		estimator = OfflinePrototypicalNetwork(), 
 		query_strategy = uncertainty_batch_sampling,
-		init_size=50
+		init_size=1
 	)
 
 	evaluator.run(n_queries=10, iteration=1, visual=True)
