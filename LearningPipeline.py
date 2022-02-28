@@ -144,7 +144,7 @@ class OfflinePrototypicalNetwork():
 		model_path = "./Encoder_models/27_02_2022__23_06_08"
 		base_model = keras.models.load_model(model_path)
 		# get feature extractor
-		self.extractor = Model(inputs=base_model.input, outputs=base_model.get_layer("feature").output)
+		self.extractor = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("feature").output)
 	
 	def fit(self, X, y):
 		# feature extraction
@@ -188,7 +188,7 @@ class TransferLearning():
 		model_path = "./Encoder_models/27_02_2022__23_06_08"
 		base_model = keras.models.load_model(model_path)
 		# fix the non-trainable part
-		self.fixed_model = Model(inputs=base_model.input, outputs=base_model.get_layer("flatten_12").output)
+		self.fixed_model = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("flatten_12").output)
 		self.fixed_model.trainable = False
 		self.feature_num = base_model.get_layer("feature").output.get_shape().as_list()[1]
 		
@@ -224,7 +224,7 @@ class TransferPrototypicalNetwork():
 		model_path = "./Encoder_models/27_02_2022__23_06_08"
 		base_model = keras.models.load_model(model_path)
 		# fix the non-trainable part
-		self.fixed_model = Model(inputs=base_model.input, outputs=base_model.get_layer("flatten_12").output)
+		self.fixed_model = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("flatten_12").output)
 		self.fixed_model.trainable = False
 		self.feature_num = base_model.get_layer("feature").output.get_shape().as_list()[1]
 		
