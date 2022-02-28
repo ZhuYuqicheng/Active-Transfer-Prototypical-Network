@@ -1,1 +1,1 @@
-# GNN based Active Few-Shot Learning
+# Active Transfer Prototypical Network
