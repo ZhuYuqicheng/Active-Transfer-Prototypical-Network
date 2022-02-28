@@ -140,14 +140,14 @@ class OfflinePrototypicalNetwork():
 	"model_path" need to be changed after retrained the encoder
 	"""
 	def __init__(self) -> None:
-		pass
-	
-	def fit(self, X, y):
 		# load the pre-trained encoder
 		model_path = "./Encoder_models/27_02_2022__23_06_08"
 		base_model = keras.models.load_model(model_path)
-		# feature extraction
+		# get feature extractor
 		self.extractor = Model(inputs=base_model.input, outputs=base_model.get_layer("feature").output)
+	
+	def fit(self, X, y):
+		# feature extraction
 		features = self.extractor.predict(X)
 		# calculate the prototyps
 		support_set = pd.DataFrame(features)
@@ -211,7 +211,7 @@ class Evaluator():
 			print(f"{index+1}. iteration: {i+1}/{n_queries} queries")
 		# get x for visualization
 		if self.batch_mode:
-			label_len = len(np.unique(np.argmax(evaluator.y, axis=1)))
+			label_len = len(np.unique(np.argmax(self.y, axis=1)))
 			self.plot_indeces = \
 				np.linspace(self.init_size, n_queries*label_len+self.init_size, n_queries+1, dtype=np.int16)
 		else:
@@ -242,7 +242,7 @@ if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
 		estimator = OfflinePrototypicalNetwork(), 
-		query_strategy = uncertainty_batch_sampling,
+		query_strategy = uncertainty_sampling,
 		init_size=1
 	)
 
