@@ -355,10 +355,10 @@ if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
 		estimator = TransferPrototypicalNetwork(), 
-		query_strategy = uncertainty_sampling,
+		query_strategy = random_batch_sampling,
 		init_size=1
 	)
 
-	evaluator.run(n_queries=300, iteration=1, visual=True, save=True)
+	evaluator.run(n_queries=10, iteration=2, visual=True, save=True)
 
 # %%
