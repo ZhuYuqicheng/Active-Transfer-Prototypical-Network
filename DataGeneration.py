@@ -176,7 +176,7 @@ def train_encoder(X, y, verbose=1, epochs=10, batch_size=32, \
 	model.add(Conv1D(filters=filters, kernel_size=kernel, activation='relu'))
 	model.add(Dropout(0.5))
 	model.add(MaxPooling1D(pool_size=2))
-	model.add(Flatten())
+	model.add(Flatten(name="flatten"))
 	model.add(Dense(feature_num, activation='relu', name="feature"))
 	model.add(Dense(n_outputs, activation='softmax'))
 	model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -197,7 +197,7 @@ if __name__ == "__main__":
 	# train_model(X, y)
 
 	# pre-trained model training
-	X, y = GenerateHAPTData().run(change=7)
+	X, y = GenerateHAPTData().run(change=1)
 	train_encoder(X, y)
 
 # %%
