@@ -226,7 +226,7 @@ class TransferPrototypicalNetwork():
 		model_path = "./Encoder_models/" + encoder_name
 		base_model = keras.models.load_model(model_path)
 		# fix the non-trainable part
-		self.fixed_model = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("flatten_12").output)
+		self.fixed_model = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("flatten").output)
 		self.fixed_model.trainable = False
 		self.feature_num = base_model.get_layer("feature").output.get_shape().as_list()[1]
 		
@@ -354,7 +354,7 @@ class Evaluator():
 if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
-		estimator = TransferLearning("10_03_2022__16_02_08"), 
+		estimator = TransferPrototypicalNetwork("10_03_2022__16_02_08"), 
 		query_strategy = uncertainty_sampling,
 		init_size=1
 	)
