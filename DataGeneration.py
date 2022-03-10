@@ -197,7 +197,7 @@ if __name__ == "__main__":
 	# train_model(X, y)
 
 	# pre-trained model training
-	X, y = GenerateHAPTData().run(change=1)
+	X, y = GenerateHAPTData().run(change=3)
 	train_encoder(X, y)
 
 # %%
