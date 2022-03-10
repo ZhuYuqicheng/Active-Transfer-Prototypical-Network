@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import os
+from datetime import datetime
 import matplotlib.pyplot as plt
 # deep learning packages
 import tensorflow as tf
@@ -107,7 +108,7 @@ class GenerateHAPTData():
 		label = np.array(label).reshape(-1,1)
 		return stack_data, label
 
-	def run(self):
+	def run(self, change=1):
 		label_path = "HAPT Dataset/RawData/labels.txt"
 		label_info = pd.read_csv(label_path, header=None, delim_whitespace=True)
 		label_info.columns = ["exp_num", "user_num", "act_num", "label_start", "label_end"]
@@ -119,13 +120,12 @@ class GenerateHAPTData():
 			label_list.append(label)
 		X = np.concatenate(data_list, axis=0)
 		y = np.concatenate(label_list, axis=0)
-		# select label (7,8,9,10,11,12)
-		# mask = np.where((y>=7) & (y<=12))
-		# X = X[mask]
-		# y = y[mask]
-		# onehot encoding of label
-		# y = y - 7
-		y = y - 1
+		# select label
+		mask = np.where(y>=change)[0]
+		X = X[mask]
+		y = y[mask]
+		y = y - change
+		# y = y - 1
 		y = tf.keras.utils.to_categorical(y)
 		return X, y
 
@@ -163,10 +163,41 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 	plot_Learning_curve(train_history)
 	print(accuracy)
 
+def train_encoder(X, y, verbose=1, epochs=10, batch_size=32, \
+	filters=32, kernel=7, feature_num=100):
+	# get dimension
+	n_timesteps =  X.shape[1]
+	n_features = X.shape[2]
+	n_outputs = y.shape[1]
+	# define model structure
+	model = Sequential()
+	model.add(Conv1D(filters=filters, kernel_size=kernel, activation='relu', \
+		input_shape=(n_timesteps,n_features)))
+	model.add(Conv1D(filters=filters, kernel_size=kernel, activation='relu'))
+	model.add(Dropout(0.5))
+	model.add(MaxPooling1D(pool_size=2))
+	model.add(Flatten())
+	model.add(Dense(feature_num, activation='relu', name="feature"))
+	model.add(Dense(n_outputs, activation='softmax'))
+	model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+	# fit network
+	train_history = \
+		model.fit(X, y, epochs=epochs, \
+			batch_size=batch_size, verbose=verbose)
+	# save the model
+	current_time = datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+	model_path = os.path.join("Encoder_models", current_time)
+	model.save(model_path)
+
 # %%
 if __name__ == "__main__":
-	X, y = GenerateHAPTData().run()
+	# data generation test
+	# X, y = GenerateHAPTData().run()
 	# X, y = GenerateHARData().run()
-	#train_model(X, y)
+	# train_model(X, y)
+
+	# pre-trained model training
+	X, y = GenerateHAPTData().run(change=7)
+	train_encoder(X, y)
 
 # %%

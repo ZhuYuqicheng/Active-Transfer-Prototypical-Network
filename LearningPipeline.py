@@ -185,9 +185,9 @@ class TransferLearning():
 	"""
 	pure active transfer learning
 	"""
-	def __init__(self) -> None:
+	def __init__(self, encoder_name) -> None:
 		# load the pre-trained encoder
-		model_path = "./Encoder_models/27_02_2022__23_06_08"
+		model_path = "./Encoder_models/" + encoder_name
 		base_model = keras.models.load_model(model_path)
 		# fix the non-trainable part
 		self.fixed_model = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("flatten_12").output)
@@ -354,7 +354,7 @@ class Evaluator():
 if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
-		estimator = TransferPrototypicalNetwork(), 
+		estimator = TransferLearning("10_03_2022__15_38_32"), 
 		query_strategy = random_batch_sampling,
 		init_size=1
 	)
