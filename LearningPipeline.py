@@ -141,9 +141,9 @@ class OfflinePrototypicalNetwork():
 	The encoder can be trained on 6_train_encoder.py
 	"model_path" need to be changed after retrained the encoder
 	"""
-	def __init__(self) -> None:
+	def __init__(self, encoder_name) -> None:
 		# load the pre-trained encoder
-		model_path = "./Encoder_models/27_02_2022__23_06_08"
+		model_path = "./Encoder_models/" + encoder_name
 		base_model = keras.models.load_model(model_path)
 		# get feature extractor
 		self.extractor = tf.keras.models.Model(inputs=base_model.input, outputs=base_model.get_layer("feature").output)
@@ -354,7 +354,7 @@ class Evaluator():
 if __name__ == "__main__":
 	evaluator = Evaluator(
 		data_generator = GenerateHARData(), 
-		estimator = TransferPrototypicalNetwork("10_03_2022__16_02_08"), 
+		estimator = OfflinePrototypicalNetwork("10_03_2022__16_02_08"), 
 		query_strategy = uncertainty_sampling,
 		init_size=1
 	)
