@@ -5,6 +5,11 @@ import pandas as pd
 import os
 import pickle
 import matplotlib.pyplot as plt
+try:
+	get_ipython().__class__.__name__ == "ZMQInteractiveShell"
+	from tqdm.notebook import tqdm
+except:
+	from tqdm import tqdm
 # active learning packages
 from modAL.models import ActiveLearner
 from modAL.uncertainty import uncertainty_sampling
@@ -295,12 +300,12 @@ class Evaluator():
 			X_training=X_initial, y_training=y_initial
 		)
 		accuracy = [learner.score(self.X, self.y)]
-		for i in range(n_queries):
+		for i in tqdm(range(n_queries)):
 			query_idx, _ = learner.query(X_pool)
 			learner.teach(X_pool[query_idx], y_pool[query_idx])
 			X_pool, y_pool = np.delete(X_pool, query_idx, axis=0), np.delete(y_pool, query_idx, axis=0)
 			accuracy.append(learner.score(self.X, self.y))
-			print(f"{index+1}. iteration: {i+1}/{n_queries} queries")
+			#print(f"{index+1}. iteration: {i+1}/{n_queries} queries")
 		# get x for visualization
 		if self.batch_mode:
 			label_len = len(np.unique(np.argmax(self.y, axis=1)))
