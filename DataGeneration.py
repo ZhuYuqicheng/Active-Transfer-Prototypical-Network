@@ -162,6 +162,7 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 	# result
 	plot_Learning_curve(train_history)
 	print(accuracy)
+	return model
 
 def train_encoder(X, y, verbose=1, epochs=10, batch_size=32, \
 	filters=32, kernel=7, feature_num=100):
