@@ -158,7 +158,7 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 	train_history = \
 		model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=verbose)
 	# evaluate model on test set
-	_, accuracy = model.evaluate(X, y, batch_size=batch_size, verbose=0)
+	#_, accuracy = model.evaluate(X, y, batch_size=batch_size, verbose=0)
 	# result
 	#plot_Learning_curve(train_history)
 	#print(accuracy)
