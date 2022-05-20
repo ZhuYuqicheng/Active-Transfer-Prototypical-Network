@@ -160,8 +160,8 @@ def train_model(X, y, verbose=1, epochs=10, batch_size=32, \
 	# evaluate model on test set
 	_, accuracy = model.evaluate(X, y, batch_size=batch_size, verbose=0)
 	# result
-	plot_Learning_curve(train_history)
-	print(accuracy)
+	#plot_Learning_curve(train_history)
+	#print(accuracy)
 	return model
 
 def train_encoder(X, y, verbose=1, epochs=10, batch_size=32, \
