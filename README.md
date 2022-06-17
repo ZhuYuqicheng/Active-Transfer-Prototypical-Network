@@ -1,6 +1,7 @@
 # Active Transfer Prototypical Network (ATPN)
 
 > **Author**: **Yuqicheng Zhu**
+> 
 > **Institute**: TUM Department of Electrical and Computer Engineering
 > **Supervisors**:
 > - Prof. Dr.-Ing. **Klaus Diepold**
